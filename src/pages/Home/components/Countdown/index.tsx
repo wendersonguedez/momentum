@@ -1,14 +1,12 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { CountdownContainer, Separator } from "./styles";
 import { differenceInSeconds } from "date-fns";
+import { CyclesContext } from "../..";
 
 export function Countdown() {
+	const { activeCycle, activeCycleId, markCurrentCycleAsFinished } =
+		useContext(CyclesContext);
 	const [amountSecondsPassed, setAmountSecondsPassed] = useState(0);
-
-	const [cycles, setCycles] = useState<Cycle[]>([]);
-	const [activeCycleId, setActiveCycleId] = useState<string | null>(null);
-
-	const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId);
 
 	/**
 	 * `totalCycleDurationInSeconds`: representa a duração do ciclo em segundos.
@@ -41,15 +39,7 @@ export function Countdown() {
 				 * desde que o ciclo ainda não tenha sido completado.
 				 */
 				if (secondsDifference >= totalCycleDurationInSeconds) {
-					setCycles((previousCycles) =>
-						previousCycles.map((cycle) => {
-							if (cycle.id === activeCycleId) {
-								return { ...cycle, finishedDate: new Date() };
-							} else {
-								return cycle;
-							}
-						})
-					);
+					markCurrentCycleAsFinished();
 
 					setAmountSecondsPassed(totalCycleDurationInSeconds);
 					clearInterval(interval);
@@ -62,7 +52,65 @@ export function Countdown() {
 		return () => {
 			clearInterval(interval);
 		};
-	}, [activeCycle, totalCycleDurationInSeconds, activeCycleId]);
+	}, [
+		activeCycle,
+		totalCycleDurationInSeconds,
+		activeCycleId,
+		markCurrentCycleAsFinished,
+	]);
+
+	/**
+	 * `remainingTimeInSeconds`: representa a quantidade de segundos restantes do ciclo atual.
+	 * Calculamos subtraindo os segundos que já se passaram do total de segundos.
+	 * Se não houver ciclo ativo, retorna 0.
+	 */
+	const remainingTimeInSeconds = activeCycle
+		? totalCycleDurationInSeconds - amountSecondsPassed
+		: 0;
+
+	/**
+	 * `remainingTimeInMinutes`: representa a quantidade de minutos restantes no ciclo atual.
+	 *
+	 * Primeiro, dividimos os segundos restantes por 60 para obter o valor em minutos.
+	 * Em seguida, usamos `Math.floor()` para arredondar para baixo,
+	 * pois queremos apenas a parte inteira dos minutos — ignorando os segundos.
+	 *
+	 * Exemplo:
+	 * - Se o tempo restante for 24 minutos e 59 segundos (1499 segundos),
+	 *   `remainingSeconds / 60` resultará em 24.983...
+	 *   `Math.floor()` garantirá que tenhamos apenas os 24 minutos inteiros.
+	 */
+	const remainingTimeInMinutes = Math.floor(remainingTimeInSeconds / 60);
+
+	/**
+	 * `remainingSeconds`: calcula os segundos restantes depois de extrair os minutos inteiros.
+	 *
+	 * Exemplo:
+	 * - Suponha que `remainingSeconds = 1499`
+	 * - Já temos `remainingMinutes = Math.floor(1499 / 60)` que dá 24 minutos
+	 * - Agora, `1499 % 60` nos dá 59, que são os segundos restantes que "sobram"
+	 *
+	 * Esse cálculo é importante para exibir o tempo no formato `MM:SS`
+	 * de forma precisa (por exemplo, 24:59).
+	 */
+	const remainingSeconds = remainingTimeInSeconds % 60;
+
+	/**
+	 * Quando o contador tiver apenas um dígito para minutos ou segundos (ex: 2, 3, 9),
+	 * será adicionado um zero à esquerda para garantir que sempre tenhamos dois dígitos
+	 * visíveis no formato `MM:SS`.
+	 *
+	 * Isso garante que, por exemplo, "2" minutos se torne "02" minutos, e "9" segundos
+	 * se torne "09" segundos, mantendo a aparência consistente e alinhada para a contagem regressiva.
+	 */
+	const minutes = String(remainingTimeInMinutes).padStart(2, "0");
+	const seconds = String(remainingSeconds).padStart(2, "0");
+
+	useEffect(() => {
+		if (activeCycle) {
+			document.title = `${minutes}:${seconds}`;
+		}
+	}, [minutes, seconds, activeCycle]);
 
 	return (
 		<CountdownContainer>
