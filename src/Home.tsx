@@ -1,9 +1,13 @@
 import { createContext, useContext, useState } from "react";
 
+/**
+ * Criando o contexto com o hook createContext, que será utilizado pelo hook useContext
+ * para acessar os dados compartilhados por esse contexto em outros componentes.
+ */
 const CyclesContext = createContext({} as any);
 
 function NewCycleForm() {
-	const { activeCycle, setActiveCycle } = useContext(CyclesContext);
+	const { activeCycle } = useContext(CyclesContext);
 
 	return <h1>New Cycle Form: {activeCycle}</h1>;
 }
