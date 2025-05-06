@@ -1,33 +1,11 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as zod from "zod";
 import { FormContainer, MinutesAmountInput, TaskInput } from "./styles";
-
-const newCycleFormValidationSchema = zod.object({
-	task: zod.string().nonempty("Informe a tarefa"),
-	minutesAmount: zod
-		.number()
-		.min(5, "O ciclo precisa ser de no mínimo 5 minutos")
-		.max(60, "O ciclo precisa ser de no máximo 60 minutos."),
-});
-
-/**
- * Isso garante que a tipagem do formulário esteja sempre sincronizada com as regras de validação,
- * evitando divergências entre o que é validado e o que é esperado como tipo.
- *
- * Caso novas informações sejam adicionadas ao esquema de validação, a tipagem será atualizada
- * automaticamente, mantendo tudo consistente sem precisar definir os tipos manualmente.
- */
-type NewCycleFormData = zod.infer<typeof newCycleFormValidationSchema>;
+import { useContext } from "react";
+import { CyclesContext } from "../..";
+import { useFormContext } from "react-hook-form";
 
 export function NewCycleForm() {
-	const { register, handleSubmit, watch, reset } = useForm<NewCycleFormData>({
-		resolver: zodResolver(newCycleFormValidationSchema),
-		defaultValues: {
-			task: "",
-			minutesAmount: 0,
-		},
-	});
+	const { activeCycle } = useContext(CyclesContext);
+	const { register } = useFormContext();
 
 	return (
 		<FormContainer>
