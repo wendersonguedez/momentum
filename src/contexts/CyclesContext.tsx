@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useState } from "react";
+import { createContext, ReactNode, useReducer, useState } from "react";
 
 interface Cycle {
 	id: string;
@@ -37,7 +37,28 @@ export const CyclesContext = createContext({} as CyclesContextType);
 export function CyclesContextProvider({
 	children,
 }: CyclesContextProviderProps) {
-	const [cycles, setCycles] = useState<Cycle[]>([]);
+	/**
+	 * Utilizando useReducer para atualização do estado dos ciclos.
+	 * @param state - O estado atual da lista de ciclos. Representa a variável `cycles` dentro da função `reducer`.
+	 * @param action - A ação que será realizada sobre o estado (por exemplo, adicionar um novo ciclo).
+	 *
+	 * @returns - O retorno do useReducer é o novo valor que o estado cycles irá receber
+	 *
+	 * O nome `dispatch` é utilizado por convenção, pois é o método responsável por enviar as ações para o `reducer`.
+	 * Ele permite que o estado seja atualizado de acordo com as ações disparadas.
+	 * A alteração do nome da função para `dispatch` segue a convenção do React e facilita a compreensão
+	 * do código por outros desenvolvedores familiarizados com essa prática.
+	 */
+	const [cycles, dispatch] = useReducer((state: Cycle[], action: any) => {
+		console.log(state);
+		console.log(action);
+		if (action.type === "ADD_NEW_CYCLE") {
+			return [...state, action.payload.newCycle]; // Adiciona o novo ciclo ao estado
+		}
+
+		return state;
+	}, []);
+
 	const [activeCycleId, setActiveCycleId] = useState<string | null>(null);
 	const [amountSecondsPassed, setAmountSecondsPassed] = useState(0);
 
@@ -48,15 +69,21 @@ export function CyclesContextProvider({
 	}
 
 	function markCurrentCycleAsFinished() {
-		setCycles((previousCycles) =>
-			previousCycles.map((cycle) => {
-				if (cycle.id === activeCycleId) {
-					return { ...cycle, finishedDate: new Date() };
-				} else {
-					return cycle;
-				}
-			})
-		);
+		dispatch({
+			type: "MARK_CURRENT_CYCLE_AS_FINISHED",
+			payload: {
+				activeCycleId,
+			},
+		});
+		// setCycles((previousCycles) =>
+		// 	previousCycles.map((cycle) => {
+		// 		if (cycle.id === activeCycleId) {
+		// 			return { ...cycle, finishedDate: new Date() };
+		// 		} else {
+		// 			return cycle;
+		// 		}
+		// 	})
+		// );
 	}
 
 	/**
@@ -72,7 +99,14 @@ export function CyclesContextProvider({
 			startDate: new Date(),
 		};
 
-		setCycles((state) => [...state, newCycle]);
+		dispatch({
+			type: "ADD_NEW_CYCLE",
+			payload: {
+				newCycle,
+			},
+		});
+
+		// setCycles((state) => [...state, newCycle]);
 		setActiveCycleId(id);
 		setAmountSecondsPassed(0);
 	}
@@ -89,15 +123,21 @@ export function CyclesContextProvider({
 	 * pra daí fazer a alteração.
 	 */
 	function interruptCurrentCycle() {
-		setCycles((previousCycles) =>
-			previousCycles.map((cycle) => {
-				if (cycle.id === activeCycleId) {
-					return { ...cycle, interruptedDate: new Date() };
-				} else {
-					return cycle;
-				}
-			})
-		);
+		dispatch({
+			type: "INTERRUPT_CURRENT_CYCLE",
+			payload: {
+				activeCycleId,
+			},
+		});
+		// setCycles((previousCycles) =>
+		// 	previousCycles.map((cycle) => {
+		// 		if (cycle.id === activeCycleId) {
+		// 			return { ...cycle, interruptedDate: new Date() };
+		// 		} else {
+		// 			return cycle;
+		// 		}
+		// 	})
+		// );
 
 		setActiveCycleId(null);
 	}
