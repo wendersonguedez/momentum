@@ -56,43 +56,55 @@ export function CyclesContextProvider({
 	 */
 	const [cyclesState, dispatch] = useReducer(
 		(state: CyclesState, action: any) => {
-			/**
-			 * Retorna um objeto contendo os estados anteriores, com um array de ciclos
-			 * e adiciona um novo ciclo ao final. Por fim, define o novo ciclo como ativo.
-			 */
-			if (action.type === "ADD_NEW_CYCLE") {
-				return {
-					...state,
-					cycles: [...state.cycles, action.payload.newCycle],
-					activeCycleId: action.payload.newCycle.id,
-				};
+			switch (action.type) {
+				/**
+				 * Retorna um objeto contendo os estados anteriores, com um array de ciclos
+				 * e adiciona um novo ciclo ao final. Por fim, define o novo ciclo como ativo.
+				 */
+				case "ADD_NEW_CYCLE":
+					return {
+						...state,
+						cycles: [...state.cycles, action.payload.newCycle],
+						activeCycleId: action.payload.newCycle.id,
+					};
+				case "INTERRUPT_CURRENT_CYCLE":
+					// Verifica se a ação é de interromper o ciclo ativo
+					return {
+						...state, // Mantém todos os estados anteriores inalterados
+						cycles: state.cycles.map((cycle) => {
+							// Mapeia todos os ciclos
+							if (cycle.id === state.activeCycleId) {
+								// Verifica se o ciclo é o ciclo ativo
+								return {
+									...cycle, // Faz uma cópia do ciclo
+									interruptedDate: new Date(), // Adiciona a data de interrupção no ciclo ativo
+								};
+							} else {
+								return cycle; // Retorna o ciclo inalterado se não for o ciclo ativo
+							}
+						}),
+						activeCycleId: null, // Define o ciclo ativo como nulo, indicando que não há ciclo ativo
+					};
+				case "MARK_CURRENT_CYCLE_AS_FINISHED":
+					return {
+						...state, // Mantém todos os estados anteriores inalterados
+						cycles: state.cycles.map((cycle) => {
+							// Mapeia todos os ciclos
+							if (cycle.id === state.activeCycleId) {
+								// Verifica se o ciclo é o ciclo ativo
+								return {
+									...cycle, // Faz uma cópia do ciclo
+									finishedDate: new Date(), // Adiciona a data de finalização no ciclo ativo
+								};
+							} else {
+								return cycle; // Retorna o ciclo inalterado se não for o ciclo ativo
+							}
+						}),
+						activeCycleId: null, // Define o ciclo ativo como nulo, indicando que não há ciclo ativo
+					};
+				default:
+					return state;
 			}
-
-			/**
-			 * Retorna um objeto com os estados anteriores, interrompe o ciclo ativo
-			 * atualizando a data de interrupção e define o ciclo ativo como nulo.
-			 */
-			if (action.type === "INTERRUPT_CURRENT_CYCLE") {
-				// Verifica se a ação é de interromper o ciclo ativo
-				return {
-					...state, // Mantém todos os estados anteriores inalterados
-					cycles: state.cycles.map((cycle) => {
-						// Mapeia todos os ciclos
-						if (cycle.id === state.activeCycleId) {
-							// Verifica se o ciclo é o ciclo ativo
-							return {
-								...cycle, // Faz uma cópia do ciclo
-								interruptedDate: new Date(), // Adiciona a data de interrupção no ciclo ativo
-							};
-						} else {
-							return cycle; // Retorna o ciclo inalterado se não for o ciclo ativo
-						}
-					}),
-					activeCycleId: null, // Define o ciclo ativo como nulo, indicando que não há ciclo ativo
-				};
-			}
-
-			return state;
 		},
 		{
 			cycles: [],
@@ -117,15 +129,6 @@ export function CyclesContextProvider({
 				activeCycleId,
 			},
 		});
-		// setCycles((previousCycles) =>
-		// 	previousCycles.map((cycle) => {
-		// 		if (cycle.id === activeCycleId) {
-		// 			return { ...cycle, finishedDate: new Date() };
-		// 		} else {
-		// 			return cycle;
-		// 		}
-		// 	})
-		// );
 	}
 
 	/**
@@ -148,7 +151,6 @@ export function CyclesContextProvider({
 			},
 		});
 
-		// setCycles((state) => [...state, newCycle]);
 		setAmountSecondsPassed(0);
 	}
 
@@ -170,15 +172,6 @@ export function CyclesContextProvider({
 				activeCycleId,
 			},
 		});
-		// setCycles((previousCycles) =>
-		// 	previousCycles.map((cycle) => {
-		// 		if (cycle.id === activeCycleId) {
-		// 			return { ...cycle, interruptedDate: new Date() };
-		// 		} else {
-		// 			return cycle;
-		// 		}
-		// 	})
-		// );
 	}
 
 	return (
