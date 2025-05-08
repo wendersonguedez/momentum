@@ -1,4 +1,5 @@
 import { ActionTypes } from "./actions";
+import { produce } from "immer";
 
 export interface Cycle {
 	id: string;
@@ -33,46 +34,38 @@ export function cyclesReducer(state: CyclesState, action: any) {
 		 * e adiciona um novo ciclo ao final. Por fim, define o novo ciclo como ativo.
 		 */
 		case ActionTypes.ADD_NEW_CYCLE:
-			return {
-				...state,
-				cycles: [...state.cycles, action.payload.newCycle],
-				activeCycleId: action.payload.newCycle.id,
-			};
-		case ActionTypes.INTERRUPT_CURRENT_CYCLE:
-			// Verifica se a ação é de interromper o ciclo ativo
-			return {
-				...state, // Mantém todos os estados anteriores inalterados
-				cycles: state.cycles.map((cycle) => {
-					// Mapeia todos os ciclos
-					if (cycle.id === state.activeCycleId) {
-						// Verifica se o ciclo é o ciclo ativo
-						return {
-							...cycle, // Faz uma cópia do ciclo
-							interruptedDate: new Date(), // Adiciona a data de interrupção no ciclo ativo
-						};
-					} else {
-						return cycle; // Retorna o ciclo inalterado se não for o ciclo ativo
-					}
-				}),
-				activeCycleId: null, // Define o ciclo ativo como nulo, indicando que não há ciclo ativo
-			};
-		case ActionTypes.MARK_CURRENT_CYCLE_AS_FINISHED:
-			return {
-				...state, // Mantém todos os estados anteriores inalterados
-				cycles: state.cycles.map((cycle) => {
-					// Mapeia todos os ciclos
-					if (cycle.id === state.activeCycleId) {
-						// Verifica se o ciclo é o ciclo ativo
-						return {
-							...cycle, // Faz uma cópia do ciclo
-							finishedDate: new Date(), // Adiciona a data de finalização no ciclo ativo
-						};
-					} else {
-						return cycle; // Retorna o ciclo inalterado se não for o ciclo ativo
-					}
-				}),
-				activeCycleId: null, // Define o ciclo ativo como nulo, indicando que não há ciclo ativo
-			};
+			return produce(state, (draft) => {
+				draft.cycles.push(action.payload.newCycle);
+				draft.activeCycleId = action.payload.newCycle.id;
+			});
+		case ActionTypes.INTERRUPT_CURRENT_CYCLE: {
+			const currentCycleIndex = state.cycles.findIndex((cycle) => {
+				return cycle.id === state.activeCycleId;
+			});
+
+			if (currentCycleIndex < 0) {
+				return state;
+			}
+
+			return produce(state, (draft) => {
+				draft.activeCycleId = null;
+				draft.cycles[currentCycleIndex].interruptedDate = new Date();
+			});
+		}
+		case ActionTypes.MARK_CURRENT_CYCLE_AS_FINISHED: {
+			const currentCycleIndex = state.cycles.findIndex((cycle) => {
+				return cycle.id === state.activeCycleId;
+			});
+
+			if (currentCycleIndex < 0) {
+				return state;
+			}
+
+			return produce(state, (draft) => {
+				draft.activeCycleId = null;
+				draft.cycles[currentCycleIndex].finishedDate = new Date();
+			});
+		}
 		default:
 			return state;
 	}
