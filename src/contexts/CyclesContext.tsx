@@ -32,6 +32,11 @@ interface CyclesContextProviderProps {
 	children: ReactNode;
 }
 
+interface CyclesState {
+	cycles: Cycle[];
+	activeCycleId: string | null;
+}
+
 export const CyclesContext = createContext({} as CyclesContextType);
 
 export function CyclesContextProvider({
@@ -49,18 +54,55 @@ export function CyclesContextProvider({
 	 * A alteração do nome da função para `dispatch` segue a convenção do React e facilita a compreensão
 	 * do código por outros desenvolvedores familiarizados com essa prática.
 	 */
-	const [cycles, dispatch] = useReducer((state: Cycle[], action: any) => {
-		console.log(state);
-		console.log(action);
-		if (action.type === "ADD_NEW_CYCLE") {
-			return [...state, action.payload.newCycle]; // Adiciona o novo ciclo ao estado
+	const [cyclesState, dispatch] = useReducer(
+		(state: CyclesState, action: any) => {
+			/**
+			 * Retorna um objeto contendo os estados anteriores, com um array de ciclos
+			 * e adiciona um novo ciclo ao final. Por fim, define o novo ciclo como ativo.
+			 */
+			if (action.type === "ADD_NEW_CYCLE") {
+				return {
+					...state,
+					cycles: [...state.cycles, action.payload.newCycle],
+					activeCycleId: action.payload.newCycle.id,
+				};
+			}
+
+			/**
+			 * Retorna um objeto com os estados anteriores, interrompe o ciclo ativo
+			 * atualizando a data de interrupção e define o ciclo ativo como nulo.
+			 */
+			if (action.type === "INTERRUPT_CURRENT_CYCLE") {
+				// Verifica se a ação é de interromper o ciclo ativo
+				return {
+					...state, // Mantém todos os estados anteriores inalterados
+					cycles: state.cycles.map((cycle) => {
+						// Mapeia todos os ciclos
+						if (cycle.id === state.activeCycleId) {
+							// Verifica se o ciclo é o ciclo ativo
+							return {
+								...cycle, // Faz uma cópia do ciclo
+								interruptedDate: new Date(), // Adiciona a data de interrupção no ciclo ativo
+							};
+						} else {
+							return cycle; // Retorna o ciclo inalterado se não for o ciclo ativo
+						}
+					}),
+					activeCycleId: null, // Define o ciclo ativo como nulo, indicando que não há ciclo ativo
+				};
+			}
+
+			return state;
+		},
+		{
+			cycles: [],
+			activeCycleId: null,
 		}
+	);
 
-		return state;
-	}, []);
-
-	const [activeCycleId, setActiveCycleId] = useState<string | null>(null);
 	const [amountSecondsPassed, setAmountSecondsPassed] = useState(0);
+
+	const { cycles, activeCycleId } = cyclesState;
 
 	const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId);
 
@@ -107,7 +149,6 @@ export function CyclesContextProvider({
 		});
 
 		// setCycles((state) => [...state, newCycle]);
-		setActiveCycleId(id);
 		setAmountSecondsPassed(0);
 	}
 
@@ -138,8 +179,6 @@ export function CyclesContextProvider({
 		// 		}
 		// 	})
 		// );
-
-		setActiveCycleId(null);
 	}
 
 	return (
