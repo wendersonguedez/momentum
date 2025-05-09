@@ -1,10 +1,17 @@
-import { createContext, ReactNode, useReducer, useState } from "react";
+import {
+	createContext,
+	ReactNode,
+	useEffect,
+	useReducer,
+	useState,
+} from "react";
 import {
 	addNewCycleAction,
 	interruptCurrentCycleAction,
 	markCurrentCycleAsFinishedAction,
 } from "../reducers/cycles/actions";
 import { Cycle, cyclesReducer } from "../reducers/cycles/reducer";
+import { differenceInSeconds } from "date-fns";
 
 interface CreateCycleData {
 	task: string;
@@ -34,16 +41,43 @@ export const CyclesContext = createContext({} as CyclesContextType);
 export function CyclesContextProvider({
 	children,
 }: CyclesContextProviderProps) {
-	const [cyclesState, dispatch] = useReducer(cyclesReducer, {
-		cycles: [],
-		activeCycleId: null,
-	});
+	const [cyclesState, dispatch] = useReducer(
+		cyclesReducer,
+		{
+			cycles: [],
+			activeCycleId: null,
+		},
+		(initialState) => {
+			const storedStateAsJSON = localStorage.getItem(
+				"@momentum:cycles-state-1.0.0"
+			);
 
-	const [amountSecondsPassed, setAmountSecondsPassed] = useState(0);
+			if (storedStateAsJSON) {
+				return JSON.parse(storedStateAsJSON);
+			}
+
+			// Caso o usuário não tenha nada no storage, irá retornar o valor do segundo parâmetro do useReducer como valor inicial,
+			// sendo um array de ciclos vazios e o id do ciclo ativo como null.
+			return initialState;
+		}
+	);
 
 	const { cycles, activeCycleId } = cyclesState;
-
 	const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId);
+
+	const [amountSecondsPassed, setAmountSecondsPassed] = useState(() => {
+		if (activeCycle) {
+			return differenceInSeconds(new Date(), activeCycle.startDate);
+		}
+
+		return 0;
+	});
+
+	useEffect(() => {
+		const stateJSON = JSON.stringify(cyclesState);
+
+		localStorage.setItem("@momentum:cycles-state-1.0.0", stateJSON);
+	}, [cyclesState]);
 
 	function setSecondsPassed(seconds: number) {
 		setAmountSecondsPassed(seconds);
